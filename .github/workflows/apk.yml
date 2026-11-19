@@ -131,6 +131,21 @@ jobs:
           }
           EOF
           curl -sSfL https://lazer-atis.onrender.com/icon-512.png -o app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          python3 -m pip install -q pillow || true
+          python3 - <<'PY' || echo "foto simge olusturulamadi"
+          import json,re,base64,io,urllib.request
+          from PIL import Image
+          k="sb_publishable_y9NvJXOGbl2J_Ln-8WLLVw_MK84wAaR"
+          q=urllib.request.Request("https://piwyqbqknzykwoujmoey.supabase.co/rest/v1/app_code?name=eq.main&select=code",headers={"apikey":k,"Authorization":"Bearer "+k,"Accept":"application/vnd.pgrst.object+json"})
+          code=json.load(urllib.request.urlopen(q))["code"]
+          m=max(re.findall(r"data:image/jpeg;base64,([A-Za-z0-9+/=]+)",code),key=len)
+          im=Image.open(io.BytesIO(base64.b64decode(m))).convert("RGB")
+          w,h=im.size
+          s=min(w,h)
+          im=im.crop(((w-s)//2,(h-s)//2,(w-s)//2+s,(h-s)//2+s)).resize((512,512),Image.LANCZOS)
+          im.save("app/src/main/res/mipmap-xxxhdpi/ic_launcher.png")
+          print("foto simge hazir")
+          PY
       - name: Sign setup
         run: |
           echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > ks.jks

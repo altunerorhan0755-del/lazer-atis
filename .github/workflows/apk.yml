@@ -39,6 +39,7 @@ jobs:
             namespace 'com.lazer.atis'
             compileSdk 34
             defaultConfig { applicationId 'com.lazer.atis'; minSdk 24; targetSdk 34; versionCode 1; versionName '1.0' }
+            signingConfigs { debug { storeFile file('../ks.jks'); storePassword 'hisarmna'; keyAlias 'hisar'; keyPassword 'hisarmna' } }
             compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
           }
           EOF
@@ -75,7 +76,14 @@ jobs:
               w = new WebView(this); setContentView(w);
               WebSettings s = w.getSettings();
               s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true); s.setMediaPlaybackRequiresUserGesture(false);
-              w.setWebViewClient(new WebViewClient());
+              w.setWebViewClient(new WebViewClient() {
+                @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+                  String h = r.getUrl().getHost();
+                  if (h != null && h.endsWith("onrender.com")) return false;
+                  try { startActivity(new Intent(Intent.ACTION_VIEW, r.getUrl())); } catch (Exception e) {}
+                  return true;
+                }
+              });
               w.setWebChromeClient(new WebChromeClient() {
                 @Override public void onPermissionRequest(final PermissionRequest r) {
                   runOnUiThread(() -> {
@@ -123,6 +131,10 @@ jobs:
           }
           EOF
           curl -sSfL https://lazer-atis.onrender.com/icon-512.png -o app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+      - name: Sign setup
+        run: |
+          echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > ks.jks
+          sed -i "s/versionCode 1;/versionCode ${{ github.run_number }};/" app/build.gradle
       - name: Build
         run: gradle assembleDebug --no-daemon
       - name: Publish release
